@@ -1,6 +1,6 @@
-import { ItemView, WorkspaceLeaf, Menu } from "obsidian";
-import { CustomFrame } from "./frame";
-import { CustomFrameSettings, CustomFramesSettings, getIcon } from "./settings";
+import {ItemView, WorkspaceLeaf, Menu} from "obsidian";
+import {CustomFrame} from "./frame";
+import {CustomFrameSettings, CustomFramesSettings, getIcon} from "./settings";
 
 export class CustomFrameView extends ItemView {
 
@@ -16,7 +16,7 @@ export class CustomFrameView extends ItemView {
         }, {
             name: "Copy link",
             icon: "link",
-            action: v => navigator.clipboard.writeText(v.frame.getCurrentUrl())
+            action: v => void navigator.clipboard.writeText(v.frame.getCurrentUrl())
         }, {
             name: "Open in browser",
             icon: "globe",
@@ -54,7 +54,7 @@ export class CustomFrameView extends ItemView {
     onload(): void {
         this.contentEl.empty();
         this.contentEl.addClass("custom-frames-view");
-        this.frame.create(this.contentEl);
+        this.frame.create(this.app, this.contentEl);
     }
 
     onPaneMenu(menu: Menu, source: string): void {
@@ -88,5 +88,5 @@ export class CustomFrameView extends ItemView {
 interface Action {
     name: string;
     icon: string;
-    action: (view: CustomFrameView) => any;
+    action: (view: CustomFrameView) => void;
 }

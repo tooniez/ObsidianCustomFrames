@@ -1,40 +1,42 @@
-import { Platform } from "obsidian";
-import { CustomFrameSettings, CustomFramesSettings, getId } from "./settings";
+import {App, Platform} from "obsidian";
+import {CustomFrameSettings, CustomFramesSettings, getId} from "./settings";
+import {WebviewStub} from "./webview-stub";
 
 export class CustomFrame {
     private readonly settings: CustomFramesSettings;
     private readonly data: CustomFrameSettings;
-    private frame: HTMLIFrameElement | any;
+    private frame: HTMLIFrameElement | WebviewStub | undefined;
 
     constructor(settings: CustomFramesSettings, data: CustomFrameSettings) {
         this.settings = settings;
         this.data = data;
     }
 
-    create(parent: HTMLElement, additionalStyle: string = undefined, urlSuffix: string = undefined): void {
+    create(app: App, parent: HTMLElement, additionalStyle?: string, urlSuffix?: string): void {
         let style = `padding: ${this.settings.padding}px;`;
-        if (additionalStyle) style += additionalStyle;
+        if (additionalStyle)
+            style += additionalStyle;
         if (Platform.isDesktopApp && !this.data.forceIframe) {
             let frameDoc = parent.doc;
-            this.frame = frameDoc.createElement("webview");
+            this.frame = parent.createEl("webview" as keyof HTMLElementTagNameMap) as WebviewStub;
             // @ts-ignore - share sessions with the built-in web viewer, see https://github.com/Ellpeck/ObsidianCustomFrames/issues/136#issuecomment-2584116803
             this.frame.partition = "persist:vault-" + app.appId;
             parent.appendChild(this.frame);
             this.frame.setAttribute("allowpopups", "");
             this.frame.addEventListener("dom-ready", () => {
-                this.frame.setZoomFactor(this.data.zoomLevel);
-                this.frame.insertCSS(this.data.customCss);
-                this.frame.executeJavaScript(this.data.customJs);
+                (this.frame as WebviewStub).setZoomFactor(this.data.zoomLevel);
+                (this.frame as WebviewStub).insertCSS(this.data.customCss);
+                (this.frame as WebviewStub).executeJavaScript(this.data.customJs);
             });
             this.frame.addEventListener("destroyed", () => {
                 // recreate the webview if it was moved to a new window
                 if (frameDoc != parent.doc) {
-                    this.frame.detach();
-                    this.create(parent, additionalStyle, urlSuffix);
+                    this.frame!.detach();
+                    this.create(app, parent, additionalStyle, urlSuffix);
                 }
             });
         } else {
-            this.frame = parent.doc.createElement("iframe");
+            this.frame = parent.createEl("iframe");
             parent.appendChild(this.frame);
             this.frame.setAttribute("sandbox", "allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads");
             this.frame.setAttribute("allow", "encrypted-media; fullscreen; oversized-images; picture-in-picture; sync-xhr; geolocation;");
@@ -65,55 +67,55 @@ export class CustomFrame {
 
     refresh(): void {
         if (this.frame instanceof HTMLIFrameElement) {
-            this.frame.contentWindow.location.reload();
+            this.frame.contentWindow!.location.reload();
         } else {
-            this.frame.reload();
+            this.frame!.reload();
         }
     }
 
     return(): void {
         if (this.frame instanceof HTMLIFrameElement) {
-            this.frame.contentWindow.open(this.data.url);
+            this.frame.contentWindow!.open(this.data.url);
         } else {
-            this.frame.loadURL(this.data.url);
+            this.frame!.loadURL(this.data.url);
         }
     }
 
     goBack(): void {
         if (this.frame instanceof HTMLIFrameElement) {
-            this.frame.contentWindow.history.back();
+            this.frame.contentWindow!.history.back();
         } else {
-            this.frame.goBack();
+            this.frame!.goBack();
         }
     }
 
     goForward(): void {
         if (this.frame instanceof HTMLIFrameElement) {
-            this.frame.contentWindow.history.forward();
+            this.frame.contentWindow!.history.forward();
         } else {
-            this.frame.goForward();
+            this.frame!.goForward();
         }
     }
 
     toggleDevTools(): void {
         if (!(this.frame instanceof HTMLIFrameElement)) {
-            if (!this.frame.isDevToolsOpened()) {
-                this.frame.openDevTools();
+            if (!this.frame!.isDevToolsOpened()) {
+                this.frame!.openDevTools();
             } else {
-                this.frame.closeDevTools();
+                this.frame!.closeDevTools();
             }
         }
     }
 
     getCurrentUrl(): string {
-        return this.frame instanceof HTMLIFrameElement ? this.frame.contentWindow.location.href : this.frame.getURL();
+        return this.frame instanceof HTMLIFrameElement ? this.frame.contentWindow!.location.href : this.frame!.getURL();
     }
 
     focus(): void {
         if (this.frame instanceof HTMLIFrameElement) {
-            this.frame.contentWindow.focus();
+            this.frame.contentWindow!.focus();
         } else {
-            this.frame.focus();
+            this.frame!.focus();
         }
     }
 }

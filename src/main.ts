@@ -1,12 +1,12 @@
-import { Plugin, Platform, WorkspaceLeaf } from "obsidian";
-import { CustomFrame } from "./frame";
-import { CustomFramesSettings, defaultSettings, getIcon, getId } from "./settings";
-import { CustomFramesSettingTab } from "./settings-tab";
-import { CustomFrameView } from "./view";
+import {Plugin, Platform, WorkspaceLeaf} from "obsidian";
+import {CustomFrame} from "./frame";
+import {CustomFramesSettings, defaultSettings, getIcon, getId} from "./settings";
+import {CustomFramesSettingTab} from "./settings-tab";
+import {CustomFrameView} from "./view";
 
 export default class CustomFramesPlugin extends Plugin {
 
-    settings: CustomFramesSettings;
+    settings!: CustomFramesSettings;
 
     async onload(): Promise<void> {
         await this.loadSettings();
@@ -16,12 +16,11 @@ export default class CustomFramesPlugin extends Plugin {
                 continue;
             let name = `custom-frames-${getId(frame)}`;
             if (Platform.isMobileApp && frame.hideOnMobile) {
-                console.log(`Skipping frame ${name} which is hidden on mobile`);
+                // console.log(`Skipping frame ${name} which is hidden on mobile`);
                 continue;
             }
             try {
-                console.log(`Registering frame ${name} for URL ${frame.url}`);
-
+                // console.log(`Registering frame ${name} for URL ${frame.url}`);
                 this.registerView(name, l => new CustomFrameView(l, this.settings, frame, name));
                 this.addCommand({
                     id: `open-${name}`,
@@ -44,7 +43,7 @@ export default class CustomFramesPlugin extends Plugin {
             e.addClass("custom-frames-view-file");
 
             let frameMatch = /frame:([^\n]+)/gi.exec(s);
-            let frameName = frameMatch && frameMatch[1].trim();
+            let frameName = frameMatch && frameMatch[1]!.trim();
             if (!frameName) {
                 e.createSpan({ text: "Couldn't parse frame name" });
                 return;
@@ -60,20 +59,20 @@ export default class CustomFramesPlugin extends Plugin {
             }
 
             let styleMatch = /style:([^\n]+)/gi.exec(s);
-            let style = styleMatch && styleMatch[1].trim();
+            let style = styleMatch && styleMatch[1]!.trim();
             style ||= "height: 600px;";
 
             let urlSuffixMatch = /urlsuffix:([^\n]+)/gi.exec(s);
-            let urlSuffix = urlSuffixMatch && urlSuffixMatch[1].trim();
+            let urlSuffix = urlSuffixMatch && urlSuffixMatch[1]!.trim();
             urlSuffix ||= "";
 
             let frame = new CustomFrame(this.settings, data);
-            frame.create(e, style, urlSuffix);
+            frame.create(this.app, e, style, urlSuffix);
         });
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, defaultSettings, await this.loadData());
+        this.settings = Object.assign({}, defaultSettings, await this.loadData() as Partial<CustomFramesSettings>);
     }
 
     async saveSettings() {
@@ -81,17 +80,18 @@ export default class CustomFramesPlugin extends Plugin {
     }
 
     private async openLeaf(name: string, center: boolean, split: boolean): Promise<void> {
-        let leaf: WorkspaceLeaf;
+        let leaf: WorkspaceLeaf | undefined;
         if (center) {
             leaf = this.app.workspace.getLeaf(split);
             await leaf.setViewState({ type: name, active: true });
         } else {
             if (!this.app.workspace.getLeavesOfType(name).length)
-                await this.app.workspace.getRightLeaf(false).setViewState({ type: name, active: true });
+                await this.app.workspace.getRightLeaf(false)!.setViewState({ type: name, active: true });
             leaf = this.app.workspace.getLeavesOfType(name)[0];
-            this.app.workspace.revealLeaf(leaf);
+            if (leaf)
+                void this.app.workspace.revealLeaf(leaf);
         }
-        if (leaf.view instanceof CustomFrameView)
+        if (leaf?.view instanceof CustomFrameView)
             leaf.view.focus();
     }
 }
